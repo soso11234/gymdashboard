@@ -83,7 +83,7 @@ def get_admin_id(session: Session, name: str) -> Optional[int]:
 
 #each trainer's dashboard
 @_execute_transaction
-def schedule_group_class(class_id: int, trainer_id: int, room_id: int, class_type: str, start_time: datetime.datetime, day_of_week:str) -> bool:
+def schedule_group_class(class_id: int, trainer_id: int, room_id: int, class_type: str, start_time: datetime, day_of_week:str) -> bool:
     """Schedules a new group class, checking for room and trainer availability."""
     session = SessionLocal()
     try:

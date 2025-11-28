@@ -17,8 +17,8 @@ class invoice(Base):
     status = Column(String(100), nullable = False)
     price_type = Column(String(100), nullable=False)
     total_price = Column(Float)
-    issue_date = (DateTime)
-    due_date = issue_date + timedelta(days=14)
+    issue_date = Column(DateTime)
+    due_date = Column(DateTime)
 
 
     #relationships
@@ -31,6 +31,7 @@ class invoice(Base):
         self.admin_id = admin_id
         self.total_price = total_price
         self.issue_date = issue_date
+        self.due_date = issue_date + timedelta(days=14)
         self.payment_method = payment_method
         self.status = status
         self.price_type = price_type

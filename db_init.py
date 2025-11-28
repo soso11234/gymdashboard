@@ -58,8 +58,8 @@ def insert_sample_data():
         goal1 = Fitness_Goal(member_id=201, target_type="being healthy", target_value="0", start_date=(2025,11,11), end_date=(2025,12,11), is_active="Y")
         goal2 = Fitness_Goal(member_id=202, target_type="Like workout", target_value="0", start_date=(2025,11,9),end_date=(2025,12,9),is_active="Y")
         #invoice
-        invoice1 = invoice(invoice_id=301,member_id=101, admin_id=201, payment_method="Card", total_price=30, issue_date=(2025,11,11), due_date=(2025,11,18), status="Paid", price_type="subscribe", total_price = 30)
-        invoice2 = invoice(invoice_id=302,member_id=102, admin_id=201, payment_method="Card", total_price=30, issue_date=(2025,11,9), due_date=(2025,11,16), status="Paid", price_type="subscribe", total_price = 30)
+        invoice1 = invoice(invoice_id=301,member_id=101, admin_id=201, payment_method="Card", total_price=30, status="Paid", price_type="subscribe")
+        invoice2 = invoice(invoice_id=302,member_id=102, admin_id=201, payment_method="Card", total_price=30, status="Paid", price_type="subscribe")
         #equipment_log
         log1 = Equipment_log(log_id=901, equipment_id=401, admin_id=1, issue_description="Belt slipping, requires maintenance.", repair_task="Scheduled for Inspection", log_date=datetime.now())
         session.add_all([class1,class2,room1,room2,enrollment1,enrollment2,metrics1,metrics2,goal1,goal2,invoice1,invoice2,log1])

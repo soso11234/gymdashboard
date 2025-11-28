@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ member.name }}'s Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .card { box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-4xl mx-auto space-y-8">
+        <header class="flex justify-between items-center pb-4 border-b border-indigo-300">
+            <h1 class="text-3xl font-bold text-indigo-700">{{ member.name }}'s Health Profile</h1>
+            <nav class="space-x-4">
+                <a href="{{ url_for('member_dashboard') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900 bg-white px-3 py-1 rounded-md border hover:border-indigo-300 transition duration-150">Logout</a>
+            </nav>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-2">
+                    {% for category, message in messages %}
+                        <div class="p-3 text-sm rounded-md {% if category == 'error' %}bg-red-100 text-red-800{% elif category == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Contact & Goal Summary -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Contact Info -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-3 text-gray-800 border-b pb-2">Contact Details</h2>
+                    <dl class="text-sm space-y-2">
+                        <div><dt class="font-medium text-gray-500">Member ID</dt><dd class="text-gray-700">{{ member.member_id }}</dd></div>
+                        <div><dt class="font-medium text-gray-500">Email</dt><dd class="text-gray-700">{{ member.email }}</dd></div>
+                        <div><dt class="font-medium text-gray-500">Phone</dt><dd class="text-gray-700">{{ member.phone_number }}</dd></div>
+                        <div><dt class="font-medium text-gray-500">DOB</dt><dd class="text-gray-700">{{ member.date_of_birth.strftime('%Y-%m-%d') }}</dd></div>
+                    </dl>
+                    <button class="mt-4 w-full py-2 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200">Edit Info</button>
+                </div>
+
+                <!-- Active Goals -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-3 text-gray-800 border-b pb-2">Active Fitness Goals</h2>
+                    {% if goals %}
+                        {% for goal in goals %}
+                        {% if goal.is_active %}
+                        <div class="border-b last:border-b-0 py-2">
+                            <p class="text-sm font-medium text-indigo-600">{{ goal.target_type }} Target: {{ goal.target_value }}</p>
+                            <p class="text-xs text-gray-500">End Date: {{ goal.end_date.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-sm text-gray-500 italic">No active goals currently set.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Metrics History & Update -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Record New Metrics -->
+                <div class="card bg-indigo-50 p-6 rounded-xl border border-indigo-200">
+                    <h2 class="text-xl font-semibold mb-3 text-gray-800 border-b border-indigo-300 pb-2">Record New Metrics</h2>
+                    <form action="{{ url_for('member_profile') }}" method="POST" class="space-y-4">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label for="weight" class="block text-sm font-medium text-gray-700">Weight (lbs)</label>
+                                <input type="number" step="0.1" id="weight" name="weight" required 
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" 
+                                       value="{{ metrics[0].weight if metrics else '' }}" placeholder="180">
+                            </div>
+                            <div>
+                                <label for="height" class="block text-sm font-medium text-gray-700">Height (cm)</label>
+                                <input type="number" id="height" name="height" required 
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" 
+                                       value="{{ metrics[0].height if metrics else '' }}" placeholder="175">
+                            </div>
+                            <div>
+                                <label for="heart_rate" class="block text-sm font-medium text-gray-700">Resting Heart Rate</label>
+                                <input type="number" id="heart_rate" name="heart_rate" required 
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" 
+                                       value="{{ metrics[0].heart_rate if metrics else '' }}" placeholder="65">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-2 px-4 rounded-md shadow-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
+                            Save Metric Snapshot
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Metrics History Table -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-3 text-gray-800 border-b pb-2">Metrics History (Last 10)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (lbs)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height (cm)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heart Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for metric in metrics %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.record_date.strftime('%Y-%m-%d') }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.weight }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.height }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.heart_rate }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitClub Manager - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .card { box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.15); }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-sm">
+        <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-6">FitClub Manager</h1>
+        
+        <!-- Login Form Card -->
+        <div class="card bg-white p-8 rounded-xl border border-gray-200">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800 border-b pb-3 text-center">User Login</h2>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="space-y-2 mb-4">
+                        {% for category, message in messages %}
+                            <div class="p-3 text-sm rounded-md {% if category == 'error' %}bg-red-100 text-red-800{% elif category == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Form posts to /login route defined in app.py -->
+            <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                    <input type="email" id="email" name="email" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500" 
+                           placeholder="you@fitclub.com">
+                </div>
+                
+                <!-- Password -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500" 
+                           placeholder="Enter your password">
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="w-full py-3 px-4 border border-transparent rounded-md shadow-lg text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Sign In
+                </button>
+            </form>
+        </div>
+
+        <!-- Registration Link -->
+        <p class="mt-6 text-center text-sm text-gray-600">
+            Don't have an account? 
+            <a href="{{ url_for('register') }}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                Register as a New Member
+            </a>
+        </p>
+
+        <div class="mt-4 p-4 text-xs text-center text-gray-500 bg-gray-100 rounded-lg">
+            <p class="font-semibold mb-1">Demo Credentials (Password: pass for all):</p>
+            <p>Member: <strong>alice@club.com</strong></p>
+            <p>Trainer: <strong>bob@trainer.com</strong></p>
+            <p>Admin: <strong>sarah@club.com</strong></p>
+        </div>
+    </div>
+</body>
+</html>

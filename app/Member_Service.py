@@ -220,6 +220,5 @@ def register_class(session, member_id: int, class_id: int) -> bool:
         enrollment_date=datetime.now(),
     )
     session.add(new_enrollment)
-    # The commit is handled by the decorator
     print(f"Success: Registered member {member_id} to class {class_id}.")
     return True

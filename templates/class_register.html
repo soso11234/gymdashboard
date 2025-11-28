@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Schedule & Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .card { box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <header class="flex justify-between items-center pb-4 border-b border-indigo-300">
+            <h1 class="text-3xl font-bold text-indigo-700">Class Schedule & Booking</h1>
+            <nav class="space-x-4">
+                <a href="{{ url_for('member_dashboard') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900 bg-white px-3 py-1 rounded-md border hover:border-indigo-300 transition duration-150">Logout</a>
+            </nav>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-2">
+                    {% for category, message in messages %}
+                        <div class="p-3 text-sm rounded-md {% if category == 'error' %}bg-red-100 text-red-800{% elif category == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <main class="space-y-6">
+            <h2 class="text-2xl font-semibold text-gray-800">Upcoming Group Classes (Next 14 Days)</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {% for class in classes %}
+                <div class="card bg-white p-6 rounded-xl border {% if class.is_enrolled %}border-indigo-500{% elif class.is_full %}border-red-500{% else %}border-gray-200{% endif %}">
+                    <h3 class="text-xl font-bold mb-2 text-indigo-600">{{ class.type }}</h3>
+                    <p class="text-sm text-gray-500 mb-4">Class ID: {{ class.class_id }}</p>
+                    
+                    <div class="space-y-1 text-sm">
+                        <p><strong class="font-medium text-gray-700">When:</strong> {{ class.start_time }}</p>
+                        <p><strong class="font-medium text-gray-700">Trainer:</strong> {{ class.trainer_name }}</p>
+                        <p><strong class="font-medium text-gray-700">Spots:</strong> 
+                            {{ class.enrolled_count }} / {{ class.capacity }} 
+                            {% if class.is_full %}
+                                <span class="text-red-500 font-semibold">(Full)</span>
+                            {% elif class.is_enrolled %}
+                                <span class="text-indigo-500 font-semibold">(Enrolled)</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="mt-4">
+                        {% if class.is_enrolled %}
+                            <button class="w-full py-2 text-sm font-medium rounded-md bg-indigo-50 text-indigo-600 cursor-not-allowed" disabled>
+                                Already Enrolled
+                            </button>
+                        {% elif class.is_full %}
+                            <button class="w-full py-2 text-sm font-medium rounded-md bg-red-100 text-red-600 cursor-not-allowed" disabled>
+                                Class Full
+                            </button>
+                        {% else %}
+                            <form action="{{ url_for('enroll_class', class_id=class.class_id) }}" method="POST">
+                                <button type="submit" class="w-full py-2 text-sm font-medium rounded-md shadow-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
+                                    Enroll Now
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if not classes %}
+                <div class="md:col-span-4 p-8 text-center bg-white rounded-xl border border-dashed border-gray-300">
+                    <p class="text-lg text-gray-500">No upcoming classes found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>
