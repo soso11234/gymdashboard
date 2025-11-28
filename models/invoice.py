@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer,String,DateTime,Float, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base 
+from datetime import timedelta
 
 # This model is the Supertype for both Admin and Trainer roles.
 class invoice(Base):
@@ -17,21 +18,19 @@ class invoice(Base):
     price_type = Column(String(100), nullable=False)
     total_price = Column(Float)
     issue_date = (DateTime)
-    due_date = (DateTime)
+    due_date = issue_date + timedelta(days=14)
 
 
     #relationships
     member = relationship("member", back_populates="invoice")
     admin = relationship("admin", back_populates="invoice")
 
-    def __init__(self,invoice_id,member_id, admin_id, payment_method, total_price, issue_date, due_date, status, price_type):
+    def __init__(self,invoice_id,member_id, admin_id, payment_method, total_price, issue_date, status, price_type):
         self.invoice_id = invoice_id
         self.member_id = member_id
         self.admin_id = admin_id
         self.total_price = total_price
         self.issue_date = issue_date
-        self.due_date = due_date
         self.payment_method = payment_method
         self.status = status
         self.price_type = price_type
-        self.total_price = total_price

@@ -176,7 +176,7 @@ def view_trainer_schedule(session: Session, trainer_id: int, start_date: date, e
             {
                 "type": c.class_type,
                 "time": c.start_time.strftime("%Y-%m-%d %H:%M"),
-                "duration_minutes": int((c.end_time - c.start_time).total_seconds() / 60),
+                "duration_minutes": 90,
                 "room_id": c.room_id
             } for c in classes_schedule
         ]
