@@ -38,7 +38,7 @@ def _execute_transaction(func):
 # --- Member Management Functions ---
 
 @_execute_transaction
-def register_member(session, contact: str, name: str, email: str, gender: str, date_of_birth: tuple) -> Optional[Member]:
+def register_member(session, contact: str, name: str, email: str, gender: str, date_of_birth: tuple, phone_num:str) -> Optional[Member]:
     """Registers a new member."""
     try: 
         # Convert date tuple (year, month, day) to date object
@@ -52,7 +52,7 @@ def register_member(session, contact: str, name: str, email: str, gender: str, d
         email=email,
         gender=gender,
         date_of_birth=dob,
-        phone_number=contact
+        phone_number=phone_num
     )
     session.add(new_member)
     # The commit is handled by the decorator

@@ -83,7 +83,7 @@ def get_admin_id(session: Session, name: str) -> Optional[int]:
 
 #each trainer's dashboard
 @_execute_transaction
-def schedule_group_class(class_id: int, trainer_id: int, room_id: int, class_type: str, start_time: datetime, day_of_week:str) -> bool:
+def schedule_new_class(class_id: int, trainer_id: int, room_id: int, class_type: str, start_time: datetime, day_of_week:str) -> bool:
     """Schedules a new group class, checking for room and trainer availability."""
     session = SessionLocal()
     try:
@@ -168,7 +168,7 @@ def log_equipment_issue(admin_id: int, equipment_id: int, issue_description: str
     This action should trigger the database trigger defined in db_init.py 
     to automatically update the equipment status to 'Needs Repair'.
     """
-    session = get_session()
+    session = SessionLocal()
     try:
         # Check if Equipment exists
         if not session.query(Equipment).filter(Equipment.equipment_id == equipment_id).first():
