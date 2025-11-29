@@ -17,11 +17,12 @@ class Equipment_log(Base):
     log_date = Column(DateTime)
     resolution_date = Column(DateTime)
     #relationships
-    admin = relationship("admin", back_populates="equipment_log")
-    equipment = relationship("equipment", back_populates="equipment_log")
+    admin = relationship("Admin", back_populates="equipment_log")
+    equipment = relationship("Equipment", back_populates="equipment_log")
 
-    def __init__(self, equipment_id, admin_id, repair_task, resolution_date):
+    def __init__(self, equipment_id, admin_id, repair_task, resolution_date,issue):
         self.equipment_id = equipment_id
         self.admin_id = admin_id
         self.repair_task = repair_task
         self.resolution_date = resolution_date
+        self.issue_description = issue

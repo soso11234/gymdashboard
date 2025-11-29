@@ -4,7 +4,7 @@ from .base import Base
 from datetime import timedelta
 
 # This model is the Supertype for both Admin and Trainer roles.
-class invoice(Base):
+class Invoice(Base):
     __tablename__ = 'invoice'
 
     # Primary Key
@@ -22,16 +22,16 @@ class invoice(Base):
 
 
     #relationships
-    member = relationship("member", back_populates="invoice")
-    admin = relationship("admin", back_populates="invoice")
+    member = relationship("Member", back_populates="invoice")
+    admin = relationship("Admin", back_populates="invoice")
 
-    def __init__(self,invoice_id,member_id, admin_id, payment_method, total_price, issue_date, status, price_type):
+    def __init__(self,invoice_id,member_id, admin_id, payment_method, total_price, issue_date, due_date, status, price_type):
         self.invoice_id = invoice_id
         self.member_id = member_id
         self.admin_id = admin_id
         self.total_price = total_price
         self.issue_date = issue_date
-        self.due_date = issue_date + timedelta(days=14)
+        self.due_date = due_date
         self.payment_method = payment_method
         self.status = status
         self.price_type = price_type

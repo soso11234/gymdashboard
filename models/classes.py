@@ -17,8 +17,9 @@ class Classes(Base):
     start_time = Column(DateTime, nullable= False)
     end_time = Column(DateTime, nullable= False)
     #relationships
-    trainer = relationship("trainer", back_populates="classes")
-    room = relationship("room", back_populates="classes")
+    trainer = relationship("Trainer", back_populates="classes", foreign_keys=[trainer_id])
+    room = relationship("Room", back_populates="classes")
+    class_enrollment = relationship("Class_enrollment", back_populates="classes")
 
     def __init__(self, class_id, trainer_id, room_id, class_type, start_time,number_members):
         self.class_id = class_id

@@ -19,32 +19,21 @@
         <div class="card bg-white p-8 rounded-xl border border-gray-200">
             <h2 class="text-2xl font-semibold mb-6 text-gray-800 border-b pb-3 text-center">User Login</h2>
 
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="space-y-2 mb-4">
-                        {% for category, message in messages %}
-                            <div class="p-3 text-sm rounded-md {% if category == 'error' %}bg-red-100 text-red-800{% elif category == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
 
             <!-- Form posts to /login route defined in app.py -->
-            <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
+            <!-- FIX: Changed 'login' to 'api_login' based on the BuildError suggestion -->
+            <form action="{{ url_for('api_login') }}" method="POST" class="space-y-6">
                 <!-- Email -->
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                    <input type="email" id="email" name="email" required 
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email / Member ID / Trainer ID / Admin ID</label>
+                    <input type="text" id="email" name="email" required 
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500" 
-                           placeholder="you@fitclub.com">
+                           placeholder="Enter your ID or Email">
                 </div>
                 
                 <!-- Password -->
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                     <input type="password" id="password" name="password" required 
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-indigo-500 focus:ring-indigo-500" 
                            placeholder="Enter your password">
@@ -60,16 +49,14 @@
         <!-- Registration Link -->
         <p class="mt-6 text-center text-sm text-gray-600">
             Don't have an account? 
-            <a href="{{ url_for('register') }}" class="font-medium text-indigo-600 hover:text-indigo-500">
+            <a href="{{ url_for('show_registration') }}" class="font-medium text-indigo-600 hover:text-indigo-500">
                 Register as a New Member
             </a>
         </p>
 
         <div class="mt-4 p-4 text-xs text-center text-gray-500 bg-gray-100 rounded-lg">
             <p class="font-semibold mb-1">Demo Credentials (Password: pass for all):</p>
-            <p>Member: <strong>alice@club.com</strong></p>
-            <p>Trainer: <strong>bob@trainer.com</strong></p>
-            <p>Admin: <strong>sarah@club.com</strong></p>
+            <p>Member: member@example.com, Trainer: 1001, Admin: 2001</p>
         </div>
     </div>
 </body>

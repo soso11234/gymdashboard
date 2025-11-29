@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from .base import Base 
 
 # This model is the Supertype for both Admin and Trainer roles.
-class Fitness_Goal(Base):
+class Fitness_goal(Base):
     __tablename__ = 'fitness_goal'
 
     # Primary Key
@@ -19,7 +19,7 @@ class Fitness_Goal(Base):
     is_active = Column(Boolean, nullable= False)
 
 
-    member = relationship("member", back_populates="fitness_goal")
+    member = relationship("Member", back_populates="fitness_goal")
 
     def __init__(self, member_id, target_type, target_value, start_date, end_date, is_active):
         self.member_id = member_id

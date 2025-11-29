@@ -17,7 +17,7 @@ class Metric(Base):
     weight = Column(Integer, nullable= False)
     heart_rate = Column(Integer, nullable= False)
 
-    member = relationship("member", back_populates="metrics")
+    member = relationship("Member", back_populates="metrics")
 
     def __init__(self, member_id, record_date, weight, height, heart_rate):
         self.member_id = member_id

@@ -8,18 +8,22 @@ class Trainer(Base):
 
     # Primary Key
     trainer_id = Column(Integer, primary_key=True,unique = True)
+    #class_id = Column(Integer, ForeignKey('classes.class_id'))
 
     #history
     name = Column(String(100), nullable= False)
     start_date = Column(DateTime, nullable= False)
+    password = Column(String(50), nullable=False)
 
 
-    trainer_availability = relationship("trainer_availability", back_populates="trainer")
-    personal_training_session = relationship("personal_training_session",back_populates="trainer")
-    classes = relationship("classes", back_populates="trainer")
+    trainer_availability = relationship("Trainer_availability", back_populates="trainer")
+    #personalTrainingSession = relationship("PersonalTrainingSession",back_populates="trainer")
+    classes = relationship("Classes", back_populates="trainer")
 
-    def __init__(self, trainer_id, name , start_date):
+    def __init__(self, trainer_id, name , start_date,password):
         self.trainer_id = trainer_id
+        #self.class_id = class_id
         self.name = name
         self.start_date = start_date
+        self.password = password
         

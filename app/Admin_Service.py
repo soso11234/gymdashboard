@@ -3,10 +3,9 @@ from models.trainer import Trainer
 from models.member import Member
 from models.classes import Classes
 from models.trainer_availability import Trainer_availability
-from models.admin import admin
-from models.room import room
-from models.invoice import invoice
-from models.classes import Classes
+from models.admin import Admin
+from models.room import Room
+from models.invoice import Invoice
 from models.equipment import Equipment
 from models.equipment_log import Equipment_log
 
@@ -50,9 +49,9 @@ def _execute_transaction(func):
 
 #register admin
 @_execute_transaction
-def register_trainer(session: Session, name: str, email:str) -> Optional[admin]:
+def register_trainer(session: Session, name: str, email:str) -> Optional[Admin]:
     try:
-        new_admin = admin(
+        new_admin = Admin(
             name= name,
             email=email
         )
@@ -67,8 +66,8 @@ def register_trainer(session: Session, name: str, email:str) -> Optional[admin]:
 @_execute_transaction
 def get_admin_id(session: Session, name: str) -> Optional[int]:
     try:
-        admin_id = session.query(admin.admin_id).filter(
-            admin.name == name
+        admin_id = session.query(Admin.admin_id).filter(
+            Admin.name == name
         ).all()
         
         if admin_id is None:
@@ -93,7 +92,7 @@ def schedule_new_class(class_id: int, trainer_id: int, room_id: int, class_type:
             return False
 
         # Check if Room exists and get its capacity
-        current_room = session.query(room).filter(room.room_id == room_id).first()
+        current_room = session.query(Room).filter(Room.room_id == room_id).first()
         if not current_room:
             print(f"Error: Room ID {room_id} does not exist.")
             return False
@@ -200,7 +199,7 @@ def view_member_invoices(member_id: int):
     """Retrieves all invoices for a specific member."""
     session = SessionLocal()
     try:
-        invoices = session.query(invoice).filter(invoice.member_id == member_id).all()
+        invoices = session.query(Invoice).filter(Invoice.member_id == member_id).all()
         
         if not invoices:
             print(f"No invoices found for Member ID {member_id}.")
@@ -233,7 +232,7 @@ def make_invoice(admin_id:int, member_id:int, total_price:int, payment_method:st
         else:
             print(f"Error : not able to find {member_id}")
             return False
-        new_invoice = invoice(
+        new_invoice = Invoice(
             member_id=member_id,
             admin_id=admin_id,
             total_price=total_price,
@@ -253,7 +252,7 @@ def make_invoice(admin_id:int, member_id:int, total_price:int, payment_method:st
 def get_invoice(member_id:int)->bool:
     session = SessionLocal()
     try:
-        if session.query(invoice).filter(invoice.member_id == member_id):
+        if session.query(Invoice).filter(Invoice.member_id == member_id):
             print(f"Find the {member_id}")
             return True
         else:
@@ -266,8 +265,8 @@ def get_invoice(member_id:int)->bool:
 @_execute_transaction
 def update_invoice(session: Session, invoice_id: int, total_price: float, price_type: str, status: str, admin_id: int) -> bool:
     try:
-        current_invoice = session.query(invoice).filter(
-            invoice.invoice_id == invoice_id
+        current_invoice = session.query(Invoice).filter(
+            Invoice.invoice_id == invoice_id
         ).one_or_none()
         
         if not current_invoice:

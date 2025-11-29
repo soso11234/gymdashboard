@@ -17,7 +17,7 @@ class Trainer_availability(Base):
     day_of_week = Column(String(50), nullable=False)
 
 
-    trainer = relationship("trainer", back_populates="trianer_availability")
+    trainer = relationship("Trainer", back_populates="trainer_availability")
 
     def __init__(self, availability_id, trainer_id, day_of_week, start_time, end_time):
         self.availability_id = availability_id

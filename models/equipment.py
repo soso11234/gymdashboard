@@ -14,8 +14,8 @@ class Equipment(Base):
     equipment_name = Column(String(100), nullable = False)
     current_status = Column(String(100), nullable = False)
     #relationships
-    admin = relationship("admin", back_populates="equipment")
-
+    admin = relationship("Admin", back_populates="equipment")
+    equipment_log = relationship("Equipment_log",back_populates="equipment")
     def __init__(self, equipment_id, admin_id, equipment_name, current_status):
         self.equipment_id = equipment_id
         self.admin_id = admin_id
