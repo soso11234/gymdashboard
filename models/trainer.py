@@ -12,6 +12,7 @@ class Trainer(Base):
 
     #history
     name = Column(String(100), nullable= False)
+    email = Column(String(100), nullable= False)
     start_date = Column(DateTime, nullable= False)
     password = Column(String(50), nullable=False)
 
@@ -20,9 +21,9 @@ class Trainer(Base):
     #personalTrainingSession = relationship("PersonalTrainingSession",back_populates="trainer")
     classes = relationship("Classes", back_populates="trainer")
 
-    def __init__(self, trainer_id, name , start_date,password):
+    def __init__(self, trainer_id,email, name , start_date,password):
         self.trainer_id = trainer_id
-        #self.class_id = class_id
+        self.email = email
         self.name = name
         self.start_date = start_date
         self.password = password

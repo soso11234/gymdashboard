@@ -13,96 +13,124 @@
 <body class="p-6">
     <div class="max-w-7xl mx-auto space-y-8">
         <header class="flex justify-between items-center pb-4 border-b border-indigo-300">
-            <h1 class="text-3xl font-bold text-indigo-700">Welcome, [Member Name]!</h1>
-            <a href="/logout" class="text-sm font-medium text-gray-500 hover:text-gray-900 bg-white px-3 py-1 rounded-md border hover:border-indigo-300 transition duration-150">Logout</a>
+            <h1 class="text-3xl font-bold text-indigo-700">Welcome, {{ data.member_name }}!</h1>
+            <a href="{{ url_for('logout') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900 bg-white px-3 py-1 rounded-md border hover:border-indigo-300 transition duration-150">Logout</a>
         </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-2">
+                    {% for category, message in messages %}
+                        <div class="p-3 text-sm rounded-md {% if category == 'error' %}bg-red-100 text-red-800{% elif category == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
         <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
             <!-- Left Column: Metrics & Goals -->
-            <div class="lg:col-span-1 space-y-8">
-                
-                <!-- Metrics Display (METRICS Table) -->
-                <div class="card bg-white p-6 rounded-xl space-y-4">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">Current Metrics</h2>
-                    <p class="text-sm text-gray-600">Last entry: 2025-11-25</p>
-
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div class="border p-3 rounded-lg bg-indigo-50">
-                            <p class="text-2xl font-bold text-indigo-600">175 lbs</p>
-                            <p class="text-xs text-gray-500">Weight</p>
-                        </div>
-                        <div class="border p-3 rounded-lg bg-indigo-50">
-                            <p class="text-2xl font-bold text-green-600">72 bpm</p>
-                            <p class="text-xs text-gray-500">Heart Rate</p>
-                        </div>
-                    </div>
-
-                    <a href="/metrics/history" class="block w-full text-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition duration-150 mt-4">View/Log New Metric</a>
-                </div>
-
-                <!-- Goals (FITNESS_GOAL Table) -->
-                <div class="card bg-white p-6 rounded-xl space-y-4">
-                    <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">Active Goals</h2>
-                    <ul class="space-y-3 text-sm">
-                        <li class="p-2 border rounded-md bg-green-50">
-                            <p class="font-medium">Goal 1: Lose 10 lbs</p>
-                            <p class="text-xs text-gray-600">Target: 170 lbs (Current: 175 lbs)</p>
-                        </li>
-                        <li class="p-2 border rounded-md bg-yellow-50">
-                            <p class="font-medium">Goal 2: Increase deadlift to 300 lbs</p>
-                            <p class="text-xs text-gray-600">Due: 2026-03-01</p>
-                        </li>
-                    </ul>
-                    <button class="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 transition duration-150">
-                        Update Goals
-                    </button>
-                </div>
-
-            </div>
-
-            <!-- Right Column: Classes and Booking -->
-            <div class="lg:col-span-3 space-y-8">
-
-                <!-- My Registered Classes (MEMBER_CLASS_ENROLLMENT) -->
-                <div class="card bg-white p-6 rounded-xl">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">My Schedule & Classes</h2>
-                    <p class="text-sm text-gray-600 mb-4">You are enrolled in [X] group classes and [Y] personal training sessions.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Upcoming Class 1 -->
-                        <div class="bg-indigo-100 p-4 rounded-lg border border-indigo-200">
-                            <p class="font-bold text-lg text-indigo-800">Spin Class: R-3 Cycle Studio</p>
-                            <p class="text-sm text-gray-700">Wednesday, Dec 4th @ 6:00 PM</p>
-                            <p class="text-xs text-gray-500">Trainer: Jane Doe</p>
-                            <button class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium">Cancel Enrollment</button>
-                        </div>
-                        <!-- Upcoming PT Session 1 (PERSONAL_TRAINING_SESSION) -->
-                        <div class="bg-green-100 p-4 rounded-lg border border-green-200">
-                            <p class="font-bold text-lg text-green-800">PT Session with John Smith</p>
-                            <p class="text-sm text-gray-700">Friday, Dec 6th @ 10:00 AM</p>
-                            <p class="text-xs text-gray-500">Room: Private Studio B</p>
-                            <button class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium">Cancel Session</button>
-                        </div>
-                    </div>
-
-                    <a href="/schedule/all" class="block w-full text-center py-2 mt-4 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition duration-150">Browse & Book New Sessions/Classes</a>
-                </div>
+            <div class="lg:col-span-1 space-y-6">
 
                 <!-- Profile Management -->
                 <div class="card bg-white p-6 rounded-xl">
                     <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Account & Billing</h2>
                     <div class="flex justify-between items-center text-sm">
                         <p class="font-medium text-gray-700">Billing Status (INVOICE)</p>
+                        <!-- Placeholder for actual data -->
                         <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending - $45.00</span>
                     </div>
                     <div class="flex justify-between items-center text-sm mt-3">
                         <p class="font-medium text-gray-700">Profile Details (MEMBER)</p>
-                        <button class="text-indigo-600 hover:text-indigo-800 font-medium">Edit Contact Info</button>
+                        <!-- Updated link to the new edit profile page -->
+                        <a href="{{ url_for('show_edit_profile') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit Contact Info</a>
                     </div>
-                    <a href="/billing/history" class="block w-full text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition duration-150 mt-4 pt-4 border-t">View Invoice History</a>
+                    <a href="#" class="block w-full text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition duration-150 mt-4 border-t pt-3">View Billing History</a>
                 </div>
 
+                <!-- Latest Health Metrics -->
+                <div class="card bg-white p-6 rounded-xl">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Latest Health Metrics</h2>
+                    <ul class="space-y-3">
+                        {% for metric in data.metrics %}
+                        <li class="flex justify-between text-sm">
+                            <span class="text-gray-500">{{ metric.record_date }}</span>
+                            <div class="space-x-4">
+                                <span class="font-medium text-gray-700">{{ metric.weight }} lbs</span>
+                                <span class="font-medium text-indigo-600">{{ metric.heart_rate }} BPM</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not data.metrics %}
+                        <li class="text-sm text-gray-500">No metrics logged yet.</li>
+                        {% endif %}
+                    </ul>
+                    <a href="#" class="block w-full text-center py-2 mt-4 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition duration-150">Log New Metric</a>
+                </div>
+
+                <!-- Fitness Goals -->
+                <div class="card bg-white p-6 rounded-xl">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Active Fitness Goals</h2>
+                    <ul class="space-y-4">
+                        {% for goal in data.goals %}
+                        <li class="border-b last:border-b-0 pb-3">
+                            <p class="text-sm font-semibold text-gray-800 mb-1">{{ goal.target_type }}</p>
+                            <div class="text-xs text-gray-500">
+                                <p>Target Value: <span class="font-medium text-gray-700">{{ goal.target_value }}</span></p>
+                                <p>Due Date: <span class="font-medium text-gray-700">{{ goal.end_date }}</span></p>
+                                <p>Goal ID: <span class="font-mono text-indigo-500">{{ goal.goal_id }}</span></p>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not data.goals %}
+                        <li class="text-sm text-gray-500">No active goals defined.</li>
+                        {% endif %}
+                    </ul>
+                    <a href="#" class="block w-full text-center py-2 mt-4 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition duration-150">Update/Set New Goal</a>
+                </div>
+            </div>
+
+            <!-- Right Column: Classes & Training -->
+            <div class="lg:col-span-3 space-y-6">
+                <!-- Registered Classes -->
+                <div class="card bg-white p-6 rounded-xl">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">My Upcoming Classes</h2>
+                    <div class="space-y-4">
+                        {% for class in data.classes %}
+                        <div class="flex justify-between items-center p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                            <div class="space-y-1">
+                                <p class="font-semibold text-indigo-700">{{ class.class_type }} (ID: {{ class.class_id }})</p>
+                                <p class="text-sm text-gray-600">
+                                    {{ class.start_time }} | Room: {{ class.room_id }} | Trainer: {{ class.trainer_id }}
+                                </p>
+                            </div>
+                            <form action="{{ url_for('api_cancel_enrollment') }}" method="POST">
+                                <input type="hidden" name="class_id" value="{{ class.class_id }}">
+                                <button type="submit" class="text-xs font-medium px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-150">
+                                    Cancel
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                        {% if not data.classes %}
+                        <p class="text-sm text-gray-500">You are not currently enrolled in any upcoming classes.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-6 border-t pt-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Personal Training</h3>
+                        <div class="flex space-x-4">
+                            <button class="flex-1 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition duration-150">View Sessions</button>
+                            <button class="flex-1 py-2 text-sm font-medium text-white bg-pink-600 rounded-md hover:bg-pink-700 transition duration-150">Book New Session</button>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('show_class_schedule') }}" class="block w-full text-center py-2 mt-4 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition duration-150">Browse & Book New Sessions/Classes</a>
+                </div>
+                
             </div>
         </main>
     </div>

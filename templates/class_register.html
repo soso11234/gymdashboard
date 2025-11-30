@@ -34,38 +34,78 @@
         {% endwith %}
 
         <main class="space-y-6">
-            <h2 class="text-2xl font-semibold text-gray-800">Upcoming Group Classes (Next 14 Days)</h2>
+            <h2 class="text-2xl font-semibold text-gray-800">Upcoming Group Classes</h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {% for class in classes %}
-                <div class="card bg-white p-6 rounded-xl border {% if class.is_enrolled %}border-indigo-500{% elif class.is_full %}border-red-500{% else %}border-gray-200{% endif %}">
-                    <h3 class="text-xl font-bold mb-2 text-indigo-600">{{ class.type }}</h3>
-                    <p class="text-sm text-gray-500 mb-4">Class ID: {{ class.class_id }}</p>
+            <!-- Manual Class Enrollment Form (NEW) -->
+            <div class="card bg-white p-6 rounded-xl border border-indigo-200">
+                <h3 class="text-xl font-bold mb-4 text-indigo-700">Quick Enroll by Class ID</h3>
+                <form action="{{ url_for('api_enroll_in_class', member_id=session['user_id']) }}" method="POST" class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-grow">
+                        <label for="class_id_manual" class="sr-only">Enter Class ID</label>
+                        <input 
+                            type="number" 
+                            id="class_id_manual" 
+                            name="class_id" 
+                            placeholder="Enter Class ID (e.g., 101)" 
+                            required 
+                            min="1"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                        >
+                    </div>
+                    <button 
+                        type="submit" 
+                        class="px-6 py-2 text-sm font-medium rounded-md shadow-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150 flex-shrink-0"
+                    >
+                        Register Class
+                    </button>
+                </form>
+                <p class="text-xs text-gray-500 mt-2">Find the Class ID on any class card below.</p>
+            </div>
+            <!-- End Manual Enrollment Form -->
+
+
+            <div class="grid grid-cols-1 md:col-cols-2 lg:col-cols-3 xl:grid-cols-4 gap-6">
+                {% for class_item in classes %}
+                {% set is_full = class_item.current_enrollment >= class_item.number_members %}
+                {% set is_enrolled = class_item.is_enrolled %}
+                
+                <div class="card bg-white p-6 rounded-xl border {% if is_enrolled %}border-indigo-500{% elif is_full %}border-red-500{% else %}border-gray-200{% endif %}">
+                    <h3 class="text-xl font-bold mb-2 text-indigo-600">{{ class_item.class_type }}</h3>
+                    <!-- Display Class ID prominently -->
+                    <p class="text-sm text-gray-500 mb-4">Class ID: <span class="font-semibold text-gray-700">{{ class_item.class_id }}</span></p>
                     
                     <div class="space-y-1 text-sm">
-                        <p><strong class="font-medium text-gray-700">When:</strong> {{ class.start_time }}</p>
-                        <p><strong class="font-medium text-gray-700">Trainer:</strong> {{ class.trainer_name }}</p>
+                        <p><strong class="font-medium text-gray-700">When:</strong> {{ class_item.start_time }}</p>
+                        <p><strong class="font-medium text-gray-700">Trainer ID:</strong> {{ class_item.trainer_id }}</p>
+                        <p><strong class="font-medium text-gray-700">Room ID:</strong> {{ class_item.room_id }}</p>
                         <p><strong class="font-medium text-gray-700">Spots:</strong> 
-                            {{ class.enrolled_count }} / {{ class.capacity }} 
-                            {% if class.is_full %}
+                            {{ class_item.current_enrollment }} / {{ class_item.number_members }} 
+                            {% if is_full %}
                                 <span class="text-red-500 font-semibold">(Full)</span>
-                            {% elif class.is_enrolled %}
+                            {% elif is_enrolled %}
                                 <span class="text-indigo-500 font-semibold">(Enrolled)</span>
                             {% endif %}
                         </p>
                     </div>
 
                     <div class="mt-4">
-                        {% if class.is_enrolled %}
-                            <button class="w-full py-2 text-sm font-medium rounded-md bg-indigo-50 text-indigo-600 cursor-not-allowed" disabled>
-                                Already Enrolled
-                            </button>
-                        {% elif class.is_full %}
+                        {% if is_enrolled %}
+                            <!-- Show cancellation button for enrolled classes -->
+                            <form action="{{ url_for('api_cancel_enrollment', member_id=session['user_id']) }}" method="POST">
+                                <input type="hidden" name="class_id" value="{{ class_item.class_id }}">
+                                <button type="submit" 
+                                    class="w-full py-2 text-sm font-medium rounded-md shadow-md text-white bg-red-500 hover:bg-red-600 transition duration-150">
+                                    Cancel Enrollment
+                                </button>
+                            </form>
+                        {% elif is_full %}
                             <button class="w-full py-2 text-sm font-medium rounded-md bg-red-100 text-red-600 cursor-not-allowed" disabled>
                                 Class Full
                             </button>
                         {% else %}
-                            <form action="{{ url_for('enroll_class', class_id=class.class_id) }}" method="POST">
+                            <!-- Form action used by both the individual card and the manual quick-enroll form -->
+                            <form action="{{ url_for('api_enroll_in_class', member_id=session['user_id']) }}" method="POST">
+                                <input type="hidden" name="class_id" value="{{ class_item.class_id }}">
                                 <button type="submit" class="w-full py-2 text-sm font-medium rounded-md shadow-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
                                     Enroll Now
                                 </button>

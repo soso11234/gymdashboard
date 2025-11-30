@@ -4,7 +4,9 @@ from datetime import datetime, date
 import sys
 import logging
 from functools import wraps
-from app.Member_Service import register_member
+#from app.Member_Service import register_member, get_member_dashboard_data
+from app.Admin_Service import check_admin
+from app.Trainer_Service import check_trainer
 
 # Assuming db_init provides the initialization function
 try:
@@ -23,7 +25,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # --- Import Service functions ---
 try:
     # Member Service Imports
-    from app.Member_Service import register_member, check_member, update_member_goal
+    from app.Member_Service import register_member,set_profile,cancel_member_class_enrollment,log_health, get_profile, check_member, update_member_goal,get_member_dashboard_data,get_available_classes,enroll_in_class
     # Admin Service Imports
     from app.Admin_Service import register_trainer, update_invoice
     # Trainer Service Imports
@@ -31,7 +33,7 @@ try:
 except ImportError as e:
     logger.error(f"FATAL: Failed to import service module. Check file names and function definitions: {e}")
     # Define placeholder functions to avoid application crash during startup
-    def register_member(*args, **kwargs): return None
+    #def register_member(*args, **kwargs): return None
     def login_user(*args, **kwargs): return {'id': 1, 'role': 'admin'} # Default admin for testing if login fails
     def enroll_in_class(*args, **kwargs): return False
     def log_health_metric(*args, **kwargs): return False
@@ -98,28 +100,24 @@ def api_login():
     print(email)
     print(password)
 
-    
-    user_data = login_user(email=email, password=password) # Should return {'id': int, 'role': str} or None
-    print(user_data)
-    if user_data:
-        session['user_id'] = user_data['id']
-        session['user_role'] = user_data['role']
-        flash(f'Welcome back!', 'success')
-        
-        # Use direct URL for dashboard redirection based on role
-        if user_data['role'] == 'member':
-            return redirect(url_for('member_dashboard'))
-        elif user_data['role'] == 'trainer':
-            return redirect(url_for('trainer_dashboard'))
-        elif user_data['role'] == 'admin':
-            return redirect(url_for('admin_dashboard'))
-    """
-    if check_member(email, password):
+    member_id = check_member(email,password)
+    admin_id = check_admin(email,password)
+    trainer_id = check_trainer(email, password)
+    if member_id:
+        session['user_id'] = member_id
+        session['user_role'] = 'member'
         return redirect(url_for('member_dashboard'))
+    elif admin_id:
+        session['admin_id'] = admin_id
+        session['user_role'] = 'admin'
+        return redirect(url_for('admin_dashboard'))
+    elif trainer_id:
+        session['trainer_id'] = trainer_id
+        session['user_role'] = 'trainer'
+        return redirect(url_for('trainer_dashboard'))
     else:
         print("ERORRRRRRRR")
     flash('Invalid email or password.', 'error')
-    """
     return redirect(url_for('show_login'))
 
 @app.route('/logout')
@@ -132,6 +130,44 @@ def logout():
 @app.route('/register', methods=['GET'])
 def show_registration():
     return render_template('registration.html')
+
+@app.route('/schedule/all', methods=['GET'])
+@role_required('member')
+def show_class_schedule():
+    """Displays the list of all available classes for enrollment."""
+    member_id = session.get('user_id') # Get member ID
+    
+    # Fetch all available classes, checking for current member's enrollment status
+    available_classes = get_available_classes(member_id=member_id) 
+
+    # Pass the list of classes to the class_schedule.html template (renamed from class_register.html)
+    return render_template(
+        'class_register.html', 
+        classes=available_classes,
+        user_role='member'
+    )
+
+
+@app.route('/api/class/register', methods=['POST'])
+@role_required('member')
+def api_register_class():
+    """Handles the form submission to enroll a member in a class."""
+    member_id = session['user_id']
+    class_id = request.form.get('class_id', type=int)
+
+    if not class_id:
+        flash('Invalid class selected.', 'error')
+        return redirect(url_for('show_class_schedule'))
+
+    success = enroll_in_class(member_id=member_id, class_id=class_id)
+    
+    if success:
+        flash('Successfully registered for the class!', 'success')
+    else:
+        # The service function handles specific error messages (like full or already enrolled)
+        flash('Failed to register for the class. It might be full, you are already enrolled, or the class time has passed.', 'error')
+        
+    return redirect(url_for('show_class_schedule'))
 
 # The original registration route is kept for member registration
 @app.route('/api/register', methods=['POST'])
@@ -150,36 +186,54 @@ def api_register():
         phone = data.get('phone')
         dob_str = data.get('dob')
         gender = data.get('gender')
-        
+        new_num = register_member(name,email,gender,dob_str,password,phone)
+        print(new_num)
+        if not new_num:
+            flash('Register failed (email may exist)','error')
+            return redirect(url_for('show_registration'))
         try:
             height = float(data.get('height'))
             weight = float(data.get('weight'))
             heart_rate = int(data.get('heart_rate'))
-            goals = data.get('goals')
-            date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
-            register_member(name,email,date_of_birth,password,phone)
+            if log_health(new_num,weight,height,heart_rate):
+                print("Sucess register health info")
+            else:
+                print("Error to register health info")
         except ValueError:
-            flash('Invalid format for date, height, weight, or heart rate.', 'error')
-            return redirect(url_for('show_registration'))
+            flash('Invalid format for height, weight, or heart rate. Health metrics not logged.', 'warning')
+            # Execution continues past this block
 
-        member_id = register_member(
-            name=name, email=email, password=password, phone=phone, date_of_birth=date_of_birth,
-            gender=gender, initial_weight_kg=weight, initial_height_cm=height,
-            initial_heart_rate_bpm=heart_rate, initial_goal_description=goals
-        )
+        # --- MISSING RETURN STATEMENT ADDED HERE ---
+        # If execution reaches this point, registration was successful.
+        flash('Registration successful! Please log in.', 'success')
+        return redirect(url_for('show_login'))
+        # -------------------------------------------
         
-        if member_id:
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('show_login'))
-        else:
-            flash('Registration failed. This email may already be registered, or a system error occurred.', 'error')
-            return redirect(url_for('show_registration'))
-
     except Exception as e:
         logger.error(f"Member Registration Error: {e}", exc_info=True)
         flash(f'An internal error occurred during registration. Please try again.', 'error')
         return redirect(url_for('show_registration'))
 
+@app.route('/api/class/cancel', methods=['POST'])
+@role_required('member')
+def api_cancel_enrollment():
+    """Handles the form submission to cancel a member's enrollment in a class."""
+    member_id = session.get('user_id')
+    class_id = request.form.get('class_id', type=int) # Class ID is passed via hidden input
+
+    if not class_id:
+        flash('Invalid class selected for cancellation.', 'error')
+        return redirect(url_for('show_class_schedule'))
+
+    success = cancel_member_class_enrollment(member_id=member_id, class_id=class_id)
+    
+    if success:
+        flash('Successfully cancelled your class enrollment.', 'success')
+    else:
+        # The service function handles specific error messages (like already started or not enrolled)
+        flash('Failed to cancel enrollment. You might not be registered or the class has already started.', 'error')
+        
+    return redirect(url_for('show_class_schedule'))
 
 # --- Dashboard Routes ---
 
@@ -187,9 +241,37 @@ def api_register():
 @role_required('member')
 def member_dashboard():
     member_id = session.get('user_id')
-    # TODO: Fetch comprehensive dashboard data (metrics, goals, classes, etc.)
-    return render_template('member dash.html', user_id=member_id, user_role='member')
+    
+    # 1. Call the service function to fetch data
+    dashboard_data = get_member_dashboard_data(member_id=member_id)
 
+    if not dashboard_data:
+        flash("Could not retrieve dashboard data.", 'error')
+        # Redirect to login if data fetch fails, or show a simpler error page
+        return redirect(url_for('show_login')) 
+
+    # 2. Pass the retrieved data to the template
+    return render_template(
+        'member dash.html', 
+        user_id=member_id, 
+        user_role='member',
+        data=dashboard_data)
+
+@app.route('/profile/edit', methods=['GET'])
+@role_required('member')
+def show_edit_profile():
+    """Displays the member profile editing form pre-filled with current data."""
+    member_id = session.get('user_id')
+    profile_data = get_profile(member_id=member_id)
+    
+    if not profile_data:
+        flash("Could not load profile data.", 'error')
+        return redirect(url_for('member_dashboard'))
+        
+    return render_template(
+        'edit_member_profile.html', 
+        profile=profile_data
+    )
 
 @app.route('/dashboard/trainer', methods=['GET'])
 @role_required('trainer')
@@ -230,21 +312,6 @@ def api_enroll_in_class(member_id):
     else:
         # Service layer should provide specific error reasons (full, already enrolled)
         flash('Enrollment failed. The class may be full or you are already registered.', 'error')
-    
-    return redirect(url_for('member_dashboard'))
-
-@app.route('/api/member/<int:member_id>/unenroll/<int:class_id>', methods=['POST'])
-@role_required('member')
-def api_cancel_enrollment(member_id, class_id):
-    if session.get('user_id') != member_id:
-        return jsonify({'message': 'Unauthorized ID for enrollment.'}), 403
-
-    success = cancel_class_enrollment(member_id=member_id, class_id=class_id)
-
-    if success:
-        flash('Successfully cancelled enrollment.', 'success')
-    else:
-        flash('Failed to cancel enrollment. Are you sure you were enrolled?', 'error')
     
     return redirect(url_for('member_dashboard'))
 
@@ -314,6 +381,34 @@ def api_update_goal(member_id):
         flash('Failed to update fitness goal.', 'error')
     
     return redirect(url_for('member_dashboard'))
+
+@app.route('/api/profile/update', methods=['POST'])
+@role_required('member')
+def api_update_profile():
+    """Handles submission of the member profile update form."""
+    member_id = session.get('user_id')
+    data = request.form
+    
+    try:
+        success = set_profile(
+            member_id=member_id,
+            name=data.get('name'),
+            phone_number=data.get('phone_number'),
+            gender=data.get('gender'),
+            new_password=data.get('password') if data.get('password') else None # Only pass password if non-empty
+        )
+        
+        if success:
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('member_dashboard'))
+        else:
+            flash('Profile update failed. Please check your inputs.', 'error')
+            return redirect(url_for('show_edit_profile'))
+            
+    except Exception as e:
+        logger.error(f"Error during profile update: {e}")
+        flash('An unexpected error occurred during profile update.', 'error')
+        return redirect(url_for('show_edit_profile'))
 
 
 # ----------------------------------------------------------------------

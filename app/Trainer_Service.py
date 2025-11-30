@@ -184,3 +184,19 @@ def view_trainer_schedule(session: Session, trainer_id: int, start_date: date, e
 
     
     return schedule_data
+@_execute_transaction
+def check_trainer(session: Session, email: str, password: str) -> Optional[int]:
+    trainer = session.query(Trainer).filter(Trainer.email == email).first()
+
+    if trainer:
+        if trainer.password == password: 
+             print(f"Success: Trainer {trainer.trainer_id} logged in.")
+             return trainer.trainer_id
+        else:
+            # Hash mismatch
+            print("Error: Invalid email or password.")
+            return None
+    else:
+        # Email not found
+        print("Error: Invalid email or password.")
+        return None

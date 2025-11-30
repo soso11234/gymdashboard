@@ -287,3 +287,21 @@ def update_invoice(session: Session, invoice_id: int, total_price: float, price_
     except Exception:
         # Error logging and rollback are handled by the decorator
         return False
+    
+def check_admin(email: str, password: str) -> Optional[int]:
+    """
+    Checks if a member with the given email and password exists.
+    Returns the member_id on success, or None on failure.
+    """
+    session = SessionLocal()
+    admin_match = session.query(Admin).filter(
+        Admin.email == email, 
+        Admin.password == password
+    ).first()
+
+    if admin_match:
+        print(f"Success: Member {admin_match.admin_id} logged in.")
+        return admin_match.admin_id
+    else:
+        print("Error: Invalid email or password.")
+        return None
