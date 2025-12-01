@@ -5,7 +5,7 @@ from models.trainer_availability import Trainer_availability
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, cast, Time
 from sqlalchemy.orm import Session 
 
 # Helper for opening and closing sessions
@@ -70,6 +70,7 @@ def get_trainer_id(session: Session, name: str) -> Optional[int]:
         return None
 
 #each trainer's dashboard
+# Trainer_Service.py, inside get_trainer_board
 @_execute_transaction
 def get_trainer_board(session: Session, trainer_id: int) -> Optional[Dict[str, Any]]:
     trainer = session.query(Trainer).filter(Trainer.trainer_id == trainer_id).first()
@@ -82,6 +83,11 @@ def get_trainer_board(session: Session, trainer_id: int) -> Optional[Dict[str, A
         Classes.trainer_id == trainer_id,
         Classes.start_time > datetime.now()
     ).order_by(Classes.start_time).all()
+    
+    # Trainer's availability in the future
+    availability_slots = session.query(Trainer_availability).filter(
+        Trainer_availability.trainer_id == trainer_id
+    ).order_by(Trainer_availability.day_of_week, Trainer_availability.start_time).all()
 
     dashbord_data = {
         "Trainer name": trainer.name,
@@ -91,6 +97,13 @@ def get_trainer_board(session: Session, trainer_id: int) -> Optional[Dict[str, A
                 "Start time": c.start_time.strftime("%m-%d %H:%M"),
                 "End time": c.end_time.strftime("%m-%d %H:%M") 
             } for c in upcoming_class
+        ],
+        "Availability_Slots": [ 
+            {
+                "Day": a.day_of_week,
+                "Start Time": a.start_time.strftime("%H:%M"),
+                "End Time": a.end_time.strftime("%H:%M")
+            } for a in availability_slots
         ]
     }
     return dashbord_data
@@ -98,18 +111,20 @@ def get_trainer_board(session: Session, trainer_id: int) -> Optional[Dict[str, A
 #check overlap
 def check_availability_overlap(session: Session, trainer_id: int, day_of_week: str, start_time_str: str, end_time_str: str) -> bool:
     try:
-        regi_start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
-        regi_end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+        regi_start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        regi_end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        db_start_time = cast(Trainer_availability.start_time, Time)
+        db_end_time = cast(Trainer_availability.end_time, Time)
     except ValueError:
-        print("Error: Invalid time format. Please use 'HH:MM:SS'.")
+        print("Error: Invalid time format. in overlap.")
         return False
 
     conflict = session.query(Trainer_availability).filter(
         and_(
             Trainer_availability.trainer_id == trainer_id, # CRITICAL FIX: Scope to the trainer
             Trainer_availability.day_of_week == day_of_week,
-            regi_start_time < Trainer_availability.end_time,
-            regi_end_time > Trainer_availability.start_time
+            regi_start_time < db_end_time,
+            regi_end_time > db_start_time
         )
     ).first()
     
@@ -126,11 +141,18 @@ def update_trainer_availability(session: Session, trainer_id: int, day_of_week: 
     """Adds a new availability slot for a trainer after checking for overlaps."""
     try:
         # Convert string times to time objects
-        start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
-        end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+        print(f"START_TIME : {start_time_str}")
+        slot_date = datetime.strptime(day_of_week, '%Y-%m-%d').date()
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        print(f"START_TIME AFTER STRTIME {start_time}")
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        #avail_id = session.query(Trainer_availability).filter(Trainer_availability.availability_id).last()
+        #avail_id = avail_id + 1
     except ValueError:
         print("Error: Invalid time format. Please use 'HH:MM:SS'.")
         return False
+    start_time_dt = datetime.combine(slot_date, start_time)
+    end_time_dt = datetime.combine(slot_date, end_time)
         
     trainer = session.query(Trainer).filter(Trainer.trainer_id == trainer_id).first()
     if not trainer:
@@ -143,10 +165,11 @@ def update_trainer_availability(session: Session, trainer_id: int, day_of_week: 
     else:
         # Create new slot
         new_availability = Trainer_availability(
+            availability_id=None,
             trainer_id=trainer_id,
             day_of_week=day_of_week,
-            start_time=start_time,
-            end_time=end_time
+            start_time=start_time_dt,
+            end_time=end_time_dt
         )
         session.add(new_availability)
         print(f"Success: Added new availability for Trainer {trainer_id} on {day_of_week} from {start_time_str} to {end_time_str}.")
@@ -193,7 +216,6 @@ def check_trainer(session: Session, email: str, password: str) -> Optional[int]:
              print(f"Success: Trainer {trainer.trainer_id} logged in.")
              return trainer.trainer_id
         else:
-            # Hash mismatch
             print("Error: Invalid email or password.")
             return None
     else:

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Existing Classes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .card { box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.1); }
+        .table-container { max-height: 500px; overflow-y: auto; }
+        .hover-shadow:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="p-6">
+    
+    <div class="max-w-7xl mx-auto space-y-8">
+        <header class="flex justify-between items-center pb-4 border-b border-gray-300">
+            <h1 class="text-3xl font-bold text-red-700">Manage Scheduled Classes</h1>
+            <a href="/admin/dashboard" class="text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded-md transition duration-150">
+                &larr; Back to Dashboard
+            </a>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2 card bg-white p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Currently Scheduled Classes</h2>
+                
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">ID</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class Type</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Date</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Time</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trainer</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Capacity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="class-table-body" class="bg-white divide-y divide-gray-200">
+                            {% for class in all_classes %}
+                            <tr class="hover:bg-red-50 cursor-pointer" 
+                                data-class='{
+                                        "class_id": "{{ class.class_id }}",
+                                        "class_type": "{{ class.class_type }}",
+                                        "start_date": "{{ class.start_date.strftime('%Y-%m-%d') if class.start_date else '' }}",
+                                        "start_time": "{{ class.start_time.strftime('%H:%M') if class.start_time else '' }}",
+                                        "trainer_id": "{{ class.trainer_id }}",
+                                        "room_id": "{{ class.room_id }}"
+                                    }'
+                                onclick="populateUpdateForm(this)">
+                                <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ class.class_id }}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">{{ class.class_type }}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">{{ class.start_date.strftime('%Y-%m-%d') if class.start_date }}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">{{ class.start_time.strftime('%I:%M %p') if class.start_time }}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">T-ID: {{ class.trainer_id }}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">R-ID: {{ class.room_id }}</td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">{{ class.number_members }}/{{ class.room.capacity }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="px-3 py-4 text-center text-sm text-gray-500">No classes are currently scheduled.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <p class="text-xs text-gray-500 pt-4">Click any row in the table to load its data into the Update/Delete form on the right.</p>
+            </div>
+
+
+            <div class="lg:col-span-1 space-y-8">
+                
+                <div class="card bg-white p-6 rounded-xl border border-gray-200 hover-shadow">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Update Class Details</h2>
+                    
+                    <form id="update-form" action="/api/admin/update_class" method="POST" class="space-y-4">
+                        
+                        <div>
+                            <label for="class_id_update" class="block text-sm font-medium text-gray-700">Class ID (Read-only)</label>
+                            <input type="text" id="class_id_update" name="class_id" required readonly placeholder="Select a class from the table" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100 font-semibold text-red-600">
+                        </div>
+
+                        <div>
+                            <label for="update_class_type" class="block text-sm font-medium text-gray-700">Class Type</label>
+                            <input type="text" id="update_class_type" name="class_type" placeholder="e.g., Yoga Flow (Optional)" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="update_start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                                <input type="date" id="update_start_date" name="start_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                            </div>
+                            <div>
+                                <label for="update_start_time" class="block text-sm font-medium text-gray-700">Start Time</label>
+                                <input type="time" id="update_start_time" name="start_time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="update_trainer_id" class="block text-sm font-medium text-gray-700">Assigned Trainer</label>
+                            <select id="update_trainer_id" name="trainer_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-white">
+                                <option value="">No Change (Current: T-ID: ?)</option>
+                                {% for trainer in all_trainers %}
+                                <option value="{{ trainer.trainer_id }}">T-ID: {{ trainer.trainer_id }} - {{ trainer.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="update_room_id" class="block text-sm font-medium text-gray-700">Assigned Room</label>
+                            <select id="update_room_id" name="room_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-white">
+                                <option value="">No Change (Current: R-ID: ?)</option>
+                                {% for room in all_rooms %}
+                                <option value="{{ room.room_id }}">R-ID: {{ room.room_id }} - {{ room.room_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="w-full py-3 px-4 rounded-md shadow-lg text-lg font-medium text-white bg-amber-600 hover:bg-amber-700 transition duration-150">
+                            Apply Updates
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card bg-red-100 p-6 rounded-xl border border-red-300">
+                    <h2 class="text-xl font-semibold text-red-700 mb-4 border-b border-red-300 pb-2">Delete Class</h2>
+                    <form id="delete-form" action="/api/admin/delete_class" method="POST" class="space-y-4">
+                        <input type="hidden" id="class_id_delete" name="class_id" required>
+                        <p id="delete-info" class="text-sm text-gray-700">Select a class from the list to enable deletion.</p>
+                        <button type="button" id="delete-button" disabled onclick="confirmDeletion()" class="w-full py-3 px-4 rounded-md shadow-lg text-lg font-medium text-white bg-red-700 opacity-50 cursor-not-allowed transition duration-150">
+                            Permanently Delete Class
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+    
+    <script>
+        // Store trainer and room data globally for easy lookup
+        let ALL_TRAINERS = {};
+        let ALL_ROOMS = {};
+
+        {% if is_local_testing %}
+        // --- Local Testing / Dummy Data Block ---
+        // Renders only if you run your backend with is_local_testing=True
+        ALL_TRAINERS = { "1": "Jane Doe", "2": "John Smith" };
+        ALL_ROOMS = { "101": "Studio A (Capacity: 20)", "102": "Studio B (Capacity: 15)" };
+        {% else %}
+        // --- Production / Backend Data Block (DEFAULT - Fetches from SQL) ---
+        // This block is processed by Jinja on the backend using data from SQL
+        ALL_TRAINERS = {
+            {% for trainer in all_trainers %}
+                "{{ trainer.trainer_id }}": "{{ trainer.name }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        }; 
+
+        ALL_ROOMS = {
+            {% for room in all_rooms %}
+                "{{ room.room_id }}": "{{ room.room_type }} (Capacity: {{ room.capacity }})"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        }; 
+        {% endif %}
+
+        // --- Class Selection and Form Population ---
+        
+        function populateUpdateForm(row) {
+            // Remove highlight from previously selected row
+            document.querySelectorAll('#class-table-body tr').forEach(r => r.classList.remove('bg-red-200'));
+            // Highlight the selected row
+            row.classList.add('bg-red-200');
+
+            // JSON.parse needs a valid JSON string. Jinja ensures this, but we extract the data.
+            const classData = JSON.parse(row.dataset.class);
+            
+            // Populate Update Form
+            document.getElementById('class_id_update').value = classData.class_id;
+            document.getElementById('update_class_type').value = classData.class_type;
+            document.getElementById('update_start_date').value = classData.start_date;
+            document.getElementById('update_start_time').value = classData.start_time;
+
+            // Set current trainer/room info in the select box options
+            const currentTrainerName = ALL_TRAINERS[classData.trainer_id] || 'Unknown';
+            const currentRoomName = ALL_ROOMS[classData.room_id] || 'Unknown';
+
+            document.getElementById('update_trainer_id').options[0].textContent = `No Change (Current: T-ID: ${classData.trainer_id} - ${currentTrainerName})`;
+            document.getElementById('update_room_id').options[0].textContent = `No Change (Current: R-ID: ${classData.room_id} - ${currentRoomName})`;
+
+            // Clear selected options for trainers/rooms to force admin to select new one if needed
+            document.getElementById('update_trainer_id').selectedIndex = 0;
+            document.getElementById('update_room_id').selectedIndex = 0;
+
+
+            // Enable and Populate Delete Form
+            document.getElementById('class_id_delete').value = classData.class_id;
+            document.getElementById('delete-info').textContent = `Ready to delete Class ID: ${classData.class_id} (${classData.class_type} on ${classData.start_date}).`;
+            
+            const deleteButton = document.getElementById('delete-button');
+            deleteButton.disabled = false;
+            deleteButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            deleteButton.classList.add('hover:bg-red-800');
+        }
+
+        // Custom function to replace window.confirm() for better user experience, 
+        // though window.confirm() remains as a temporary simple fallback.
+        function confirmDeletion() {
+            const classId = document.getElementById('class_id_delete').value;
+            const classType = document.getElementById('update_class_type').value;
+
+            // Using window.confirm() as per instructions to avoid custom modal implementation complexity.
+            if (window.confirm(`WARNING: Are you sure you want to permanently DELETE Class ID ${classId} (${classType})? This action cannot be undone.`)) {
+                document.getElementById('delete-form').submit();
+            }
+        }
+    </script>
+</body>
+</html>

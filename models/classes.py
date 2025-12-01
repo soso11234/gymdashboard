@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer,String,DateTime,ForeignKey
+from sqlalchemy import Column, Integer,String,DateTime,ForeignKey, Date
 from sqlalchemy.orm import relationship
 from .base import Base 
 from datetime import timedelta
@@ -16,12 +16,13 @@ class Classes(Base):
     number_members = Column(Integer, nullable = False)
     start_time = Column(DateTime, nullable= False)
     end_time = Column(DateTime, nullable= False)
+    start_date = Column(Date, nullable = False)
     #relationships
     trainer = relationship("Trainer", back_populates="classes", foreign_keys=[trainer_id])
     room = relationship("Room", back_populates="classes")
     class_enrollment = relationship("Class_enrollment", back_populates="classes")
 
-    def __init__(self, class_id, trainer_id, room_id, class_type, start_time,number_members):
+    def __init__(self, class_id, trainer_id, room_id,class_type, start_time,number_members):
         self.class_id = class_id
         self.trainer_id = trainer_id
         self.room_id = room_id
@@ -29,5 +30,6 @@ class Classes(Base):
         self.start_time = start_time
         self.end_time = start_time+ timedelta(minutes=90)
         self.number_members = number_members
+        self.start_date = start_time.date()
     def __repr__(self):
         return f"<classes (id={self.class_id}, trainer_id={self.trainer_id},room_id={self.room_id}, start time='{self.start_time}, end time='{self.end_time}'>"

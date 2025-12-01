@@ -4,7 +4,7 @@ from .base import Base
 
 # This model is the Supertype for both Admin and Trainer roles.
 class Trainer_availability(Base):
-    __tablename__ = 'trianer_availability'
+    __tablename__ = 'trainer_availability'
 
     # Primary Key
     availability_id = Column(Integer, primary_key=True,unique = True)

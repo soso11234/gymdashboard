@@ -11,61 +11,84 @@
     </style>
 </head>
 <body class="p-6">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="fixed top-4 right-4 z-50 space-y-2">
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-lg text-sm {% if category == 'error' %}bg-red-100 text-red-800{% elif category == 'success' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %} shadow-md">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
     <div class="max-w-7xl mx-auto space-y-8">
         <header class="flex justify-between items-center pb-4 border-b border-emerald-300">
-            <h1 class="text-3xl font-bold text-emerald-700">Trainer Console: [Trainer Name]</h1>
+            <h1 class="text-3xl font-bold text-emerald-700">Trainer Console: {{ data.trainer_name or 'Trainer' }} (ID: {{ user_id }})</h1>
             <a href="/logout" class="text-sm font-medium text-gray-500 hover:text-gray-900 bg-white px-3 py-1 rounded-md border hover:border-emerald-300 transition duration-150">Logout</a>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            <!-- Trainer Schedule View (CLASS & PT SESSION Tables) -->
             <div class="lg:col-span-2 card bg-white p-6 rounded-xl">
                 <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">My Upcoming Schedule</h2>
                 <p class="text-sm text-gray-600 mb-4">View your assigned group classes and booked personal training sessions.</p>
                 
-                <!-- Schedule List -->
                 <div class="space-y-4">
-                    <!-- Class Entry -->
+                    
+                    {% for class in data.classes %}
                     <div class="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex justify-between items-center">
                         <div>
-                            <p class="font-bold text-lg text-emerald-800">GROUP: HIIT 45 Min (Class ID: 101)</p>
-                            <p class="text-sm text-gray-700">Today, 5:00 PM - 5:45 PM | Room: Gym Floor A</p>
-                            <p class="text-xs text-gray-500">Enrolled: 18 / 20</p>
-                        </div>
-                        <button onclick="window.location.href='/trainer/view_class/101'" class="text-sm font-medium text-emerald-600 hover:text-emerald-800">View Roster</button>
+                            <p class="font-bold text-lg text-emerald-800">GROUP: {{ class['Type'] }}</p>
+                            <p class="text-sm text-gray-700">Start: {{ class['Start time'] }} | End: {{ class['End time'] }}</p>
+                            </div>
+                        <button onclick="window.location.href='/trainer/view_class/{{ class.id }}'" class="text-sm font-medium text-emerald-600 hover:text-emerald-800">View Roster</button>
                     </div>
-                    <!-- PT Session Entry -->
+                    {% endfor %}
+
+                    {% for session in data.pt_sessions %}
                     <div class="p-4 rounded-lg bg-yellow-50 border border-yellow-200 flex justify-between items-center">
                         <div>
-                            <p class="font-bold text-lg text-yellow-800">PT SESSION: Member Jane Doe (M-ID: 502)</p>
-                            <p class="text-sm text-gray-700">Tomorrow, 11:00 AM - 12:00 PM | Room: Private Studio C</p>
-                            <p class="text-xs text-gray-500">Status: Booked</p>
+                            <p class="font-bold text-lg text-yellow-800">PT SESSION: Member {{ session.member_name }} (M-ID: {{ session.member_id }})</p>
+                            <p class="text-sm text-gray-700">{{ session.time }} | Room: {{ session.room }}</p>
+                            <p class="text-xs text-gray-500">Status: {{ session.status }}</p>
                         </div>
-                        <button onclick="window.location.href='/trainer/session/502'" class="text-sm font-medium text-yellow-600 hover:text-yellow-800">Manage Session</button>
+                        <button onclick="window.location.href='/trainer/session/{{ session.member_id }}'" class="text-sm font-medium text-yellow-600 hover:text-yellow-800">Manage Session</button>
                     </div>
-                    <!-- Class Entry 2 -->
-                    <div class="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex justify-between items-center">
-                        <div>
-                            <p class="font-bold text-lg text-emerald-800">GROUP: Yoga Flow (Class ID: 205)</p>
-                            <p class="text-sm text-gray-700">Thursday, Dec 5th @ 7:00 AM | Room: Studio B</p>
-                            <p class="text-xs text-gray-500">Enrolled: 12 / 15</p>
-                        </div>
-                        <button onclick="window.location.href='/trainer/view_class/205'" class="text-sm font-medium text-emerald-600 hover:text-emerald-800">View Roster</button>
+                    {% endfor %}
+                    
+                    {% if not data.Upcoming_Classes and not data.pt_sessions %}
+                    <div class="p-6 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p class="text-gray-500 text-base">Your schedule is currently clear for the next 7 days.</p>
                     </div>
+                    {% endif %}
                 </div>
 
                 <a href="/schedule/full" class="block w-full text-center py-2 mt-4 text-sm font-medium text-emerald-600 bg-emerald-50 rounded-md hover:bg-emerald-100 transition duration-150">View Full Calendar</a>
 
             </div>
 
-            <!-- Right Column: Availability Management -->
             <div class="lg:col-span-1 card bg-white p-6 rounded-xl space-y-6">
-                <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Set Availability (TRAINER_AVAILABILITY)</h2>
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Set Availability</h2>
                 <p class="text-sm text-gray-600">Define time windows when you are available for PT bookings.</p>
-
-                <!-- Form to Add Availability Slot -->
-                <form action="/trainer/add_availability" method="POST" class="space-y-4">
+                
+                <div class="space-y-3">
+                    <h3 class="text-lg font-medium text-gray-800">My Current Availability Slots</h3>
+                    {% if data.Availability_Slots %}
+                        {% for slot in data.Availability_Slots %}
+                        <div class="p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                            <p class="font-semibold text-indigo-800">{{ slot.Day }}</p>
+                            <p class="text-sm text-gray-700">From **{{ slot['Start Time'] }}** to **{{ slot['End Time'] }}**</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-4 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                            <p class="text-gray-500 text-sm">No availability slots defined yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <form action="{{ url_for('api_update_availability', trainer_id=user_id) }}" method="POST" class="space-y-4">
                     <div>
                         <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
                         <input type="date" id="date" name="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">

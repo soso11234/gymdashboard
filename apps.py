@@ -27,9 +27,9 @@ try:
     # Member Service Imports
     from app.Member_Service import register_member,set_profile,cancel_member_class_enrollment,log_health, get_profile, check_member, update_member_goal,get_member_dashboard_data,get_available_classes,enroll_in_class
     # Admin Service Imports
-    from app.Admin_Service import register_trainer, update_invoice
+    from app.Admin_Service import delete_class, update_class, get_all_classes, get_all_trainers, get_class_id, get_all_rooms,get_admin_dashboard_data, register_trainer, update_invoice, schedule_new_class, make_invoice, view_member_invoices, delete_room, update_room, add_room
     # Trainer Service Imports
-    from app.Trainer_Service import update_trainer_availability, view_trainer_schedule
+    from app.Trainer_Service import update_trainer_availability, view_trainer_schedule, get_trainer_board
 except ImportError as e:
     logger.error(f"FATAL: Failed to import service module. Check file names and function definitions: {e}")
     # Define placeholder functions to avoid application crash during startup
@@ -108,11 +108,11 @@ def api_login():
         session['user_role'] = 'member'
         return redirect(url_for('member_dashboard'))
     elif admin_id:
-        session['admin_id'] = admin_id
+        session['user_id'] = admin_id
         session['user_role'] = 'admin'
         return redirect(url_for('admin_dashboard'))
     elif trainer_id:
-        session['trainer_id'] = trainer_id
+        session['user_id'] = trainer_id
         session['user_role'] = 'trainer'
         return redirect(url_for('trainer_dashboard'))
     else:
@@ -277,16 +277,43 @@ def show_edit_profile():
 @role_required('trainer')
 def trainer_dashboard():
     trainer_id = session.get('user_id')
-    # TODO: Fetch today's schedule, class rosters, etc.
-    return render_template('trainer dash.html', user_id=trainer_id, user_role='trainer')
+     # 1. Call the service function to fetch data
+    dashboard_data = get_trainer_board(trainer_id=trainer_id)
+
+    if not dashboard_data:
+        flash("Could not retrieve dashboard data.", 'error')
+        # Redirect to login if data fetch fails, or show a simpler error page
+        return redirect(url_for('show_login')) 
+
+    # 2. Pass the retrieved data to the template
+    return render_template(
+        'trainer dash.html', 
+        user_id=trainer_id, 
+        user_role='trainer',
+        data=dashboard_data)
 
 
 @app.route('/dashboard/admin', methods=['GET'])
 @role_required('admin')
 def admin_dashboard():
     admin_id = session.get('user_id')
-    # TODO: Fetch overview stats (active members, classes, equipment status)
-    return render_template('admin dash.html', user_id=admin_id, user_role='admin')
+    # 1. Call the service function to fetch data
+    dashboard_data = get_admin_dashboard_data(admin_id=admin_id)
+    trainers = get_all_trainers()
+    rooms = get_all_rooms()
+    if not dashboard_data:
+        flash("Could not retrieve dashboard data.", 'error')
+        # Redirect to login if data fetch fails, or show a simpler error page
+        return redirect(url_for('show_login')) 
+
+    # 2. Pass the retrieved data to the template
+    return render_template(
+        'admin dash.html', 
+        user_id=admin_id,
+        user_role='admin',
+        all_trainers = trainers,
+        all_rooms = rooms,
+        data=dashboard_data)
 
 
 # ----------------------------------------------------------------------
@@ -415,33 +442,45 @@ def api_update_profile():
 # --- TRAINER API Routes (Schedule Management, Class Roster) ---
 # ----------------------------------------------------------------------
 
-# Retaining the previous route and making it role-specific
+
 @app.route('/api/trainer/<int:trainer_id>/availability', methods=['POST'])
 @role_required('trainer')
 def api_update_availability(trainer_id):
     if session.get('user_id') != trainer_id:
-        return jsonify({'message': 'Unauthorized ID for updating availability.'}), 403
+        flash('Unauthorized to update this trainer\'s availability.', 'error')
+        return redirect(url_for('trainer_dashboard'))
 
     data = request.form
     try:
-        day_of_week = data.get('day_of_week')
+        day_of_week = data.get('date')
         start_time_str = data.get('start_time')
         end_time_str = data.get('end_time')
-    except Exception:
-        flash('Invalid input for availability.', 'error')
-        return redirect(url_for('trainer_dashboard'))
+        flash(day_of_week,'success')
+        flash(start_time_str,'success')
+        flash(end_time_str,'success')
 
-    success = update_trainer_availability(
-        trainer_id=trainer_id,
-        day_of_week=day_of_week,
-        start_time_str=start_time_str,
-        end_time_str=end_time_str
-    )
+        # Check for missing data
+        if not all([day_of_week, start_time_str, end_time_str]):
+             # Updated the error message to be slightly more actionable
+             flash('Please ensure you have selected the Day, Start Time, and End Time for your availability slot.', 'error')
+             return redirect(url_for('trainer_dashboard'))
 
-    if success:
-        flash("Availability updated successfully.", 'success')
-    else:
-        flash("Availability update failed.", 'error')
+        # Call the service function, passing arguments by keyword for clarity
+        success = update_trainer_availability(
+            trainer_id=trainer_id,
+            day_of_week=day_of_week,
+            start_time_str=start_time_str,
+            end_time_str=end_time_str
+        )
+
+        if success:
+            flash("Availability updated successfully.", 'success')
+        else:
+            flash("Availability update failed. Please check time format (e.g., '10:00:00') or if the new slot overlaps with an existing one.", 'error')
+
+    except Exception as e:
+        logger.error(f"Error processing availability update form: {e}")
+        flash('An unexpected error occurred while processing your request.', 'error')
         
     return redirect(url_for('trainer_dashboard'))
 
@@ -525,35 +564,54 @@ def api_register_trainer():
 @role_required('admin')
 def api_create_class():
     data = request.form
-    required_fields = ['class_type', 'trainer_id', 'room_id', 'start_time', 'capacity']
-    if not all(field in data for field in required_fields):
-        flash('Missing required fields for class creation.', 'error')
+    required_fields = ['class_type', 'trainer_id', 'room_id', 'start_date', 'start_time']
+    
+    # 1. Validation Check (Ensures keys exist and values are non-empty strings)
+    if not all(data.get(field) and str(data.get(field)).strip() for field in required_fields):
+        flash('Missing required fields for class creation. Please fill all fields.', 'error')
         return redirect(url_for('admin_dashboard'))
-
+    
+    # 2. Retrieve Admin ID from session
+    admin_id = session.get('user_id')
+    if not admin_id:
+        flash('Admin ID not found in session. Please log in again.', 'error')
+        return redirect(url_for('login'))
+    start_date_str = data.get('start_date')
+    start_time_str = data.get('start_time')
+    combined_datetime_str = f"{start_date_str} {start_time_str}"
+    start_time = datetime.strptime(combined_datetime_str, '%Y-%m-%d %H:%M')
+        
     try:
-        class_type = data.get('class_type')
+        # Retrieve and process form data
+        class_type = data.get('class_type').strip()
         trainer_id = int(data.get('trainer_id'))
         room_id = int(data.get('room_id'))
-        # Expecting start_time in 'YYYY-MM-DD HH:MM:SS' format (or similar)
-        start_time = datetime.strptime(data.get('start_time'), '%Y-%m-%d %H:%M:%S') 
-        capacity = int(data.get('capacity'))
-    except Exception:
-        flash('Invalid input format for class details.', 'error')
+
+        
+        # The number of registered members starts at 0, as requested
+        initial_registered_members = 0 
+        
+    except ValueError as e:
+        print(f"Error converting form data to integer/datetime: {e}")
+        flash('Invalid format for ID or Date/Time fields.', 'error')
+        return redirect(url_for('admin_dashboard'))
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        flash('An unexpected error occurred during data processing.', 'error')
         return redirect(url_for('admin_dashboard'))
 
-    class_id = create_class(
-        class_type=class_type,
+    # 3. Call the service function
+    success = schedule_new_class(
         trainer_id=trainer_id,
         room_id=room_id,
-        start_time=start_time,
-        capacity=capacity,
-        admin_id=session.get('user_id') # Pass the logged-in admin's ID
-    )
-
-    if class_id:
-        flash(f'Class "{class_type}" created successfully with ID: {class_id}.', 'success')
+        class_type=class_type,
+        start_time=start_time)
+    
+    if success:
+        flash(f'Class "{class_type}" scheduled successfully.', 'success')
     else:
-        flash('Class creation failed (e.g., trainer/room busy, invalid IDs).', 'error')
+        # This usually means a conflict (trainer/room busy) or a database error
+        flash('Class creation failed. Check for scheduling conflicts with the trainer or room.', 'error')
         
     return redirect(url_for('admin_dashboard'))
 
@@ -620,6 +678,28 @@ def api_add_equipment():
         flash('Failed to add equipment.', 'error')
         
     return redirect(url_for('admin_dashboard'))
+@app.route('/admin/manage_classes', methods=['GET'])
+@role_required('admin')
+def admin_manage_classes():
+    try:
+        # 1. Fetch all necessary data using the service layer functions
+        all_classes = get_all_classes()
+        all_trainers = get_all_trainers()
+        all_rooms = get_all_rooms()
+        
+        # 2. Render the HTML template, passing the fetched data
+        return render_template(
+            'modify class.html',
+            all_classes=all_classes,
+            all_trainers=all_trainers,
+            all_rooms=all_rooms,
+
+        )
+    except Exception as e:
+        logger.error(f"Error loading class management page: {e}")
+        print(f"THE REASON OF ERROR : {e}")
+        flash("Failed to load class management data.", "error")
+        return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/api/admin/log_maintenance/<int:equipment_id>', methods=['POST'])
@@ -651,6 +731,232 @@ def api_log_maintenance(equipment_id):
         
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/admin/manage_rooms')
+@role_required('admin')
+def manage_rooms():
+    """Renders the room management page with a list of all rooms."""
+    rooms = get_all_rooms()
+    # Note: rooms is expected to be a list of Room objects or dicts for the template
+    return render_template('manage room.html', rooms=rooms)
+
+@app.route('/api/admin/add_room', methods=['POST'])
+@role_required('admin')
+def api_admin_add_room():
+    """API endpoint to add a new room."""
+    data = request.form
+    admin_id = session.get('user_id')
+    
+    # Using 'room_type' and 'current_status' to match the database model (room.py)
+    try:
+        room_type = data.get('room_type') 
+        capacity = int(data.get('capacity'))
+        current_status = data.get('current_status')
+        equipment_id = data.get('equipment_id', None) # Equipment is optional
+        
+        if not room_type or capacity is None or capacity < 0 or not current_status:
+            flash('Invalid input for adding a room.', 'error')
+            return redirect(url_for('manage_rooms'))
+
+        room_id = add_room(
+            room_type=room_type,
+            capacity=capacity,
+            current_status=current_status,
+            admin_id=admin_id,
+            equipment_id=equipment_id if equipment_id else None
+        )
+
+        if room_id:
+            flash(f'Room {room_type} (ID: {room_id}) added successfully.', 'success')
+        else:
+            flash('Failed to add room. Check logs for database errors.', 'error')
+            
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during add_room: {e}")
+        # The original error was caused by the function signature mismatch.
+        # This updated block fixes it.
+        flash(f'An unexpected error occurred during add_room: {e}', 'error') 
+        
+    return redirect(url_for('manage_rooms'))
+
+
+@app.route('/api/admin/update_room/<int:room_id>', methods=['POST'])
+@role_required('admin')
+def api_update_room(room_id):
+    """API endpoint to update an existing room's details."""
+    data = request.form
+    try:
+        name = data.get('room_name')
+        capacity = int(data.get('capacity'))
+        status = data.get('status')
+        admin_id = session.get('user_id')
+        
+        success = update_room_service(
+            room_id=room_id, 
+            name=name, 
+            capacity=capacity, 
+            status=status, 
+            admin_id=admin_id
+        )
+
+        if success:
+            flash(f'Room ID {room_id} updated successfully.', 'success')
+        else:
+            flash(f'Failed to update room ID {room_id}. Room not found or update error.', 'error')
+            
+    except Exception as e:
+        logger.error(f"Error in api_update_room: {e}")
+        flash('Invalid input or a database error occurred when updating the room.', 'error')
+        
+    return redirect(url_for('manage_rooms'))
+
+@app.route('/api/admin/delete_room/<int:room_id>', methods=['POST'])
+@role_required('admin')
+def api_delete_room(room_id):
+    """API endpoint to delete a room."""
+    
+    success = delete_room(room_id=room_id)
+
+    if success:
+        flash(f'Room ID {room_id} deleted successfully.', 'success')
+    else:
+        # NOTE: A real application would check for active classes in this room first.
+        flash(f'Failed to delete room ID {room_id}. It might not exist or is in use.', 'error')
+        
+    return redirect(url_for('manage_rooms'))
+
+
+@app.route('/api/admin/create_class', methods=['POST'])
+@role_required('admin')
+def api_add_class():
+    data = request.form
+    required_fields = ['class_type', 'trainer_id', 'room_id', 'start_time', 'capacity']
+    
+    if not all(field in data for field in required_fields):
+        flash('Missing required fields for class creation.', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
+    try:
+        class_type = data.get('class_type')
+        trainer_id = int(data.get('trainer_id'))
+        room_id = int(data.get('room_id'))
+        # Expecting start_time in 'YYYY-MM-DD HH:MM:SS' format (or similar)
+        start_time_str = data.get('start_time')
+        start_time = datetime.strptime(start_time_str, '%Y-%m-%d %H:%M:%S')
+        start_date = start_time.date()
+        
+        # --- FIX 1: Generate class_id and day_of_week ---
+        # Get the next available class ID (imported from Admin_Service)
+        new_class_id = get_class_id() # Assuming this function returns the new unique ID
+        
+        # Calculate the day of the week string (e.g., 'Monday')
+        day_of_week = start_time.strftime('%A')
+        # ------------------------------------------------
+        
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error parsing class creation form: {e}")
+        flash('Invalid input format for class details.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    # --- FIX 2: Call the correct function with correct arguments ---
+    success = schedule_new_class(
+        class_id=new_class_id,        # Now included
+        trainer_id=trainer_id,
+        room_id=room_id,
+        class_type=class_type,
+        start_time=start_time,
+        day_of_week=start_date        # Now included
+        # capacity is not used by schedule_new_class in Admin_Service.py
+        # admin_id is not used by schedule_new_class in Admin_Service.py
+    )
+    # -------------------------------------------------------------
+    
+    if success:
+        flash(f'Class "{class_type}" created successfully with ID: {new_class_id}.', 'success')
+    else:
+        # schedule_new_class returns False on conflict (e.g., trainer/room busy)
+        flash('Class creation failed (e.g., trainer/room busy, invalid IDs).', 'error')
+        
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/api/admin/update_class', methods=['POST'])
+@role_required('admin')
+def api_update_class(): 
+    """Handles the form submission from the 'Apply Updates' button."""
+    data = request.form
+    
+    # 1. Get required class ID
+    try:
+        class_id = int(data.get('class_id'))
+    except (TypeError, ValueError):
+        flash('Invalid Class ID. Please select a class from the table first.', 'error')
+        return redirect(url_for('admin_manage_classes'))
+
+    # 2. Get optional updates (Trainer/Room IDs are handled as strings from the form)
+    class_type = data.get('class_type')
+    trainer_id_str = data.get('trainer_id')
+    room_id_str = data.get('room_id')
+    
+    # 3. Parse Trainer and Room IDs to int (only if a selection was made)
+    # The 'No Change' option should result in a blank string, leading to None here.
+    trainer_id = int(trainer_id_str) if trainer_id_str and trainer_id_str.isdigit() else None
+    room_id = int(room_id_str) if room_id_str and room_id_str.isdigit() else None
+    
+    # 4. Parse Date and Time together
+    start_time = None
+    start_date_str = data.get('start_date')
+    start_time_str = data.get('start_time')
+    
+    if start_date_str and start_time_str:
+        try:
+            # Combines date and time string: e.g., '2025-12-15 15:00'
+            combined_datetime_str = f"{start_date_str} {start_time_str}"
+            start_time = datetime.strptime(combined_datetime_str, '%Y-%m-%d %H:%M')
+        except ValueError:
+            flash('Invalid date or time format provided.', 'error')
+            return redirect(url_for('admin_manage_classes'))
+
+    # 5. Call the Service Function to update the class
+    result_message = update_class(
+        class_id=class_id,
+        class_type=class_type,
+        start_time=start_time, # Will be None if not updated
+        trainer_id=trainer_id, # Will be None if 'No Change' was selected
+        room_id=room_id        # Will be None if 'No Change' was selected
+    )
+    
+    # 6. Flash result and redirect
+    if "successfully" in result_message:
+        flash(result_message, 'success')
+    else:
+        flash(result_message, 'error')
+
+    return redirect(url_for('admin_manage_classes'))
+
+@app.route('/api/admin/delete_class', methods=['POST'])
+@role_required('admin')
+def api_delete_class():
+    """Handles the form submission from the 'Delete Class' button."""
+    class_id_str = request.form.get('class_id')
+    
+    # 1. Validate Class ID
+    try:
+        class_id = int(class_id_str)
+    except (TypeError, ValueError):
+        flash('Invalid Class ID provided for deletion.', 'error')
+        return redirect(url_for('admin_manage_classes'))
+
+    # 2. Call the Service Function to delete the class
+    result_message = delete_class(class_id=class_id)
+    
+    # 3. Flash result and redirect
+    if "successfully" in result_message:
+        flash(result_message, 'success')
+    else:
+        # This will display the enrollment check error or the general DB error
+        flash(result_message, 'error') 
+
+    return redirect(url_for('admin_manage_classes'))
 
 if __name__ == '__main__':
     # Initialize the database before running the app

@@ -100,8 +100,8 @@ def insert_sample_data():
         # classes (capacity 인자 제거)
         start_time_class1 = datetime(2026, 11, 28, 18, 0, 0)
         start_time_class2 = datetime(2026, 11, 29, 10, 0, 0)
-        class1 = Classes(class_id=1, trainer_id=101, room_id=1, class_type="Zumba Dance", start_time=start_time_class1, number_members=30)
-        class2 = Classes(class_id=2, trainer_id=102, room_id=1, class_type="Power Lifting", start_time=start_time_class2, number_members=25)
+        class1 = Classes(trainer_id=101, room_id=1, class_type="Zumba Dance", start_time=start_time_class1, number_members=30)
+        class2 = Classes(trainer_id=102, room_id=1, class_type="Power Lifting", start_time=start_time_class2, number_members=25)
 
         # invoice (due_date 인자 추가)
         issue_date_inv1 = datetime.now()
