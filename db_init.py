@@ -78,13 +78,10 @@ def insert_sample_data():
         equipment5 = Equipment(equipment_id=5, admin_id=1, equipment_name="Dumbbell Rack", current_status="Operational")
         equipment6 = Equipment(equipment_id=6, admin_id=1, equipment_name="Elliptical C2", current_status="Needs Repair")
 
-        # equipment_log (누락되어 있던 데이터 추가 및 올바른 __init__ 인자 사용)
-        # __init__(self, equipment_id, admin_id, repair_task, resolution_date, issue):
+
         log1 = Equipment_log(equipment_id=6, admin_id=1, repair_task="Inspected motor", resolution_date=None, issue="Noise from motor")
-        
-        # rooms (equipment_type 인자 오류 수정: equipment_id로 통일)
-        # room model을 알 수 없어 room1, room2처럼 equipment_id를 사용하는 것으로 통일
-        room1 = Room(room_id=1, admin_id=1, equipment_id=1, room_type="Cardio", capacity=30, current_status="Available")
+
+        room1 = Room(room_id=1, admin_id=1, room_type="Cardio", capacity=30, current_status="Available")
        
         # metrics
         metric1 = Metric(member_id=201, record_date=datetime(2025, 10, 1), weight=65, height=170, heart_rate=70)
@@ -100,8 +97,8 @@ def insert_sample_data():
         # classes (capacity 인자 제거)
         start_time_class1 = datetime(2026, 11, 28, 18, 0, 0)
         start_time_class2 = datetime(2026, 11, 29, 10, 0, 0)
-        class1 = Classes(trainer_id=101, room_id=1, class_type="Zumba Dance", start_time=start_time_class1, number_members=30)
-        class2 = Classes(trainer_id=102, room_id=1, class_type="Power Lifting", start_time=start_time_class2, number_members=25)
+        class1 = Classes(class_id=1,trainer_id=101, room_id=1, class_type="Zumba Dance", start_time=start_time_class1, number_members=30)
+        class2 = Classes(class_id=2,trainer_id=102, room_id=1, class_type="Power Lifting", start_time=start_time_class2, number_members=25)
 
         # invoice (due_date 인자 추가)
         issue_date_inv1 = datetime.now()

@@ -27,7 +27,7 @@ try:
     # Member Service Imports
     from app.Member_Service import register_member,set_profile,cancel_member_class_enrollment,log_health, get_profile, check_member, update_member_goal,get_member_dashboard_data,get_available_classes,enroll_in_class
     # Admin Service Imports
-    from app.Admin_Service import delete_class, update_class, get_all_classes, get_all_trainers, get_class_id, get_all_rooms,get_admin_dashboard_data, register_trainer, update_invoice, schedule_new_class, make_invoice, view_member_invoices, delete_room, update_room, add_room
+    from app.Admin_Service import update_room, delete_class, update_class, get_all_classes, get_all_trainers, get_class_id, get_all_rooms,get_admin_dashboard_data, register_trainer, update_invoice, schedule_new_class, make_invoice, view_member_invoices, delete_room, update_room, add_room
     # Trainer Service Imports
     from app.Trainer_Service import update_trainer_availability, view_trainer_schedule, get_trainer_board
 except ImportError as e:
@@ -751,7 +751,6 @@ def api_admin_add_room():
         room_type = data.get('room_type') 
         capacity = int(data.get('capacity'))
         current_status = data.get('current_status')
-        equipment_id = data.get('equipment_id', None) # Equipment is optional
         
         if not room_type or capacity is None or capacity < 0 or not current_status:
             flash('Invalid input for adding a room.', 'error')
@@ -761,19 +760,17 @@ def api_admin_add_room():
             room_type=room_type,
             capacity=capacity,
             current_status=current_status,
-            admin_id=admin_id,
-            equipment_id=equipment_id if equipment_id else None
+            admin_id=admin_id
         )
 
         if room_id:
             flash(f'Room {room_type} (ID: {room_id}) added successfully.', 'success')
         else:
+            flash(room_id)
             flash('Failed to add room. Check logs for database errors.', 'error')
             
     except Exception as e:
         logger.error(f"An unexpected error occurred during add_room: {e}")
-        # The original error was caused by the function signature mismatch.
-        # This updated block fixes it.
         flash(f'An unexpected error occurred during add_room: {e}', 'error') 
         
     return redirect(url_for('manage_rooms'))
@@ -790,7 +787,7 @@ def api_update_room(room_id):
         status = data.get('status')
         admin_id = session.get('user_id')
         
-        success = update_room_service(
+        success = update_room(
             room_id=room_id, 
             name=name, 
             capacity=capacity, 

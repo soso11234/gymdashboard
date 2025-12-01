@@ -471,18 +471,17 @@ def get_next_room_id(session: Session) -> int:
     return (max_id or 0) + 1
 
 @_execute_transaction
-def add_room(session: Session, room_type: str, capacity: int, current_status: str, admin_id: int, equipment_id: Optional[int] = None) -> Optional[int]:
+def add_room(session: Session, room_type: str, capacity: int, current_status: str, admin_id: int) -> Optional[int]:
     """
     Adds a new room to the database.
     Fixes the 'unexpected keyword argument room_type' error by including 'room_type' in the signature.
     """
     try:
-        new_room_id = get_next_room_id(session) # Get the next ID before creating the object
+        new_room_id = get_next_room_id()
         
         new_room = Room(
             room_id=new_room_id,
             admin_id=admin_id,
-            equipment_id=equipment_id,
             room_type=room_type,
             capacity=capacity,
             current_status=current_status
@@ -506,8 +505,7 @@ def get_all_rooms() -> List[Dict[str, Any]]:
             "name": r.room_type, # Using room_type as the display name
             "capacity": r.capacity,
             "status": r.current_status, # Using current_status as the display status
-            "admin_id": r.admin_id,
-            "equipment_id": r.equipment_id
+            "admin_id": r.admin_id
         } for r in rooms]
         print(f"Successfully retrieved {len(rooms_data)} rooms.")
         return rooms_data

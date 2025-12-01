@@ -77,25 +77,24 @@ def get_trainer_board(session: Session, trainer_id: int) -> Optional[Dict[str, A
     if not trainer:
         print(f"Error: Cannot find trainer ID {trainer_id}")
         return None
-        
+    print(f"DEBUG: Trainer found and attempting to return dashboard data for {trainer.name}")
+    now = datetime.now()
     # Query classes that are in the future
     upcoming_class = session.query(Classes).filter(
         Classes.trainer_id == trainer_id,
-        Classes.start_time > datetime.now()
+        Classes.start_time >= now
     ).order_by(Classes.start_time).all()
-    
     # Trainer's availability in the future
     availability_slots = session.query(Trainer_availability).filter(
         Trainer_availability.trainer_id == trainer_id
     ).order_by(Trainer_availability.day_of_week, Trainer_availability.start_time).all()
-
     dashbord_data = {
         "Trainer name": trainer.name,
-        "Upcoming Classes": [
+        "classes": [
             {
                 "Type": c.class_type,
-                "Start time": c.start_time.strftime("%m-%d %H:%M"),
-                "End time": c.end_time.strftime("%m-%d %H:%M") 
+                "Start time": c.start_time.strftime("%H:%M"), 
+                "End time": c.end_time.strftime("%H:%M")
             } for c in upcoming_class
         ],
         "Availability_Slots": [ 
@@ -106,6 +105,7 @@ def get_trainer_board(session: Session, trainer_id: int) -> Optional[Dict[str, A
             } for a in availability_slots
         ]
     }
+    print(dashbord_data)
     return dashbord_data
 
 #check overlap
