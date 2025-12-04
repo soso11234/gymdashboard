@@ -1,0 +1,20 @@
+Video Link : https://youtu.be/qxLSj2rbwQM
+
+How to Use : http://127.0.0.1:5000
+
+.env : 
+DB_USER=postgres
+DB_PASSWORD={password}
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=mytest (database name)
+
+/ — project root
+|-- app/ # main application code
+|-- models/ # data models
+|-- templates/ # HTML templates for web UI
+|-- db_init.py # initialization script for database
+|-- ER diagram.pdf # schema diagram
+|-- final_mapping.pdf # data-model mapping documentation
+|-- .gitignore
+

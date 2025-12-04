@@ -176,7 +176,8 @@ def schedule_new_class(
         Classes.start_time < end_time, # Check if new class ends after a current class starts
         Classes.end_time > start_time  # Check if new class starts before a current class ends
     ).first()
-    
+    #if trainer A has class on 12-02 at 1pm to 3pm
+    #it tries to detect the trainer A's time conflic
     room_busy = session.query(Classes).filter(
         Classes.room_id == room_id,
         Classes.start_time < end_time,
